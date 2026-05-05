@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NFS-e Downloader</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Segoe UI", sans-serif;
+      }
+      body {
+        margin: 0;
+        background: #f5f7fb;
+        color: #1d2433;
+      }
+      .app {
+        max-width: 920px;
+        margin: 18px auto;
+        background: #fff;
+        border: 1px solid #e6e9ef;
+        border-radius: 12px;
+        padding: 18px;
+      }
+      h1 {
+        margin-top: 0;
+        font-size: 22px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      label {
+        font-size: 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      input, select, button {
+        border: 1px solid #cfd7e3;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 14px;
+      }
+      button {
+        cursor: pointer;
+      }
+      .inline {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .inline input {
+        flex: 1;
+      }
+      .actions {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+      }
+      .primary {
+        background: #264dca;
+        color: #fff;
+        border: none;
+      }
+      .status {
+        margin-top: 12px;
+        padding: 10px;
+        border-radius: 8px;
+        background: #eef3ff;
+      }
+      .progress {
+        margin-top: 8px;
+        font-size: 13px;
+      }
+      .log {
+        margin-top: 14px;
+        border: 1px solid #dce2ec;
+        border-radius: 8px;
+        background: #0f1724;
+        color: #c6d0e1;
+        padding: 10px;
+        min-height: 210px;
+        max-height: 300px;
+        overflow: auto;
+        font-family: Consolas, monospace;
+        font-size: 12px;
+      }
+      .hint {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #55627a;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <h1>Downloader de XML NFS-e</h1>
+
+      <section class="grid">
+        <label>
+          Tipo de login
+          <select id="loginType">
+            <option value="credentials">Usuário e senha</option>
+            <option value="certificate">Certificado digital (manual)</option>
+          </select>
+        </label>
+
+        <label>
+          Timeout por download (ms)
+          <input id="timeoutMs" type="number" value="30000" min="10000" step="1000" />
+        </label>
+
+        <label>
+          Data inicial
+          <input id="startDate" type="date" />
+        </label>
+
+        <label>
+          Data final
+          <input id="endDate" type="date" />
+        </label>
+
+        <label>
+          Usuário
+          <input id="username" type="text" placeholder="Digite o usuário" />
+        </label>
+
+        <label>
+          Senha
+          <input id="password" type="password" placeholder="Digite a senha" />
+        </label>
+      </section>
+
+      <label style="margin-top: 12px;">
+        Pasta de destino dos XMLs
+        <div class="inline">
+          <input id="outputDir" type="text" readonly placeholder="Selecione a pasta" />
+          <button id="selectFolderBtn">Escolher pasta</button>
+        </div>
+      </label>
+
+      <div class="actions">
+        <button id="startBtn" class="primary">Iniciar</button>
+        <button id="stopBtn">Pausar</button>
+        <button id="openFolderBtn">Abrir pasta</button>
+      </div>
+
+      <div id="status" class="status">Aguardando início.</div>
+      <div id="progress" class="progress">Processadas: 0 | Baixadas: 0</div>
+      <p class="hint">
+        Dica: selecione o período desejado. O sistema fará download apenas das notas dentro deste intervalo.
+      </p>
+
+      <pre id="log" class="log"></pre>
+    </main>
+
+    <script src="./renderer.js"></script>
+  </body>
+  </html>

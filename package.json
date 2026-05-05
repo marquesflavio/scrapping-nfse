@@ -1,0 +1,39 @@
+{
+  "name": "nfse-downloader",
+  "version": "1.0.0",
+  "description": "Aplicativo desktop simples para baixar XMLs de NFS-e emitidas.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win portable",
+    "test": "echo \"Sem testes automatizados ainda\""
+  },
+  "keywords": [],
+  "author": "nfse-downloader",
+  "license": "ISC",
+  "type": "commonjs",
+  "build": {
+    "appId": "br.com.nfse.downloader",
+    "productName": "NFS-e Downloader",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ]
+    }
+  },
+  "dependencies": {
+    "electron": "^41.5.0",
+    "playwright": "^1.59.1"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.8.1"
+  }
+}
