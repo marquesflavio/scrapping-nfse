@@ -5,7 +5,8 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "build:win": "electron-builder --win portable",
+    "prepare:browsers": "cross-env PLAYWRIGHT_BROWSERS_PATH=./playwright-browsers playwright install chromium",
+    "build:win": "npm run prepare:browsers && electron-builder --win portable",
     "test": "echo \"Sem testes automatizados ainda\""
   },
   "keywords": [],
@@ -27,13 +28,23 @@
       "target": [
         "portable"
       ]
-    }
+    },
+    "extraResources": [
+      {
+        "from": "playwright-browsers",
+        "to": "playwright-browsers",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   },
   "dependencies": {
-    "electron": "^41.5.0",
     "playwright": "^1.59.1"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
+    "electron": "^41.5.0",
     "electron-builder": "^26.8.1"
   }
 }

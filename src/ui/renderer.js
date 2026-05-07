@@ -3,7 +3,6 @@ const { ipcRenderer } = require("electron");
 const loginType = document.getElementById("loginType");
 const username = document.getElementById("username");
 const password = document.getElementById("password");
-const timeoutMs = document.getElementById("timeoutMs");
 const startDate = document.getElementById("startDate");
 const endDate = document.getElementById("endDate");
 const outputDir = document.getElementById("outputDir");
@@ -75,8 +74,7 @@ startBtn.addEventListener("click", async () => {
     password: password.value,
     startDate: startDate.value,
     endDate: endDate.value,
-    outputDir: outputDir.value,
-    timeoutMs: Number(timeoutMs.value || 30000)
+    outputDir: outputDir.value
   });
 
   if (!result.ok) {

@@ -2,12 +2,23 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("path");
 const fs = require("fs/promises");
 
-const { runNfseDownloadFlow } = require("./automation/nfseBot");
 const { createLogger } = require("./core/logger");
 
 const logger = createLogger();
 let isRunning = false;
 let shouldStop = false;
+let runNfseDownloadFlow;
+
+function configurePlaywrightBrowserPath() {
+  if (process.env.PLAYWRIGHT_BROWSERS_PATH) return;
+
+  if (app.isPackaged) {
+    process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.resourcesPath, "playwright-browsers");
+    return;
+  }
+
+  process.env.PLAYWRIGHT_BROWSERS_PATH = path.resolve(__dirname, "..", "playwright-browsers");
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -49,6 +60,10 @@ ipcMain.handle("open-folder", async (_event, folderPath) => {
 });
 
 ipcMain.handle("run-bot", async (_event, config) => {
+  if (!runNfseDownloadFlow) {
+    ({ runNfseDownloadFlow } = require("./automation/nfseBot"));
+  }
+
   if (isRunning) {
     return { ok: false, message: "A execução já está em andamento." };
   }
@@ -95,7 +110,11 @@ ipcMain.handle("stop-bot", async () => {
   return { ok: true };
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  configurePlaywrightBrowserPath();
+  ({ runNfseDownloadFlow } = require("./automation/nfseBot"));
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

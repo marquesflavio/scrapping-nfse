@@ -37,7 +37,28 @@ npm start
 npm run build:win
 ```
 
-Saída em `dist/`.
+Saída em `dist/` (arquivo como `NFS-e Downloader 1.0.0.exe`).
+
+## Enviar para outra pessoa (somente executável)
+
+Passo a passo recomendado no Windows 11:
+
+1. Na sua máquina, rode:
+
+```bash
+npm install
+npm run build:win
+```
+
+2. Aguarde finalizar o build.
+3. Abra a pasta `dist/`.
+4. Envie o arquivo `.exe` gerado (ex.: `NFS-e Downloader 1.0.0.exe`) por WhatsApp, Drive, OneDrive ou e-mail.
+5. A outra pessoa só precisa baixar o arquivo e dar duplo clique para abrir.
+
+Observações:
+
+- O executável já inclui os recursos necessários do Playwright para rodar em outro computador.
+- Se o Windows mostrar aviso de segurança (SmartScreen), clique em `Mais informações` e depois em `Executar assim mesmo`.
 
 ## Como usar (passo a passo simples)
 

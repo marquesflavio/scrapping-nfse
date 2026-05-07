@@ -273,34 +273,164 @@ async function clickDownloadXml(page) {
   return false;
 }
 
-async function hasNextPage(page) {
-  const nextCandidates = [
-    page.getByRole("button", { name: /próxima|proxima|next|>/i }),
-    page.getByRole("link", { name: /próxima|proxima|next|>/i }),
-    page.locator("a[aria-label*='next' i], button[aria-label*='next' i]")
+async function getCurrentPageMarker(page) {
+  return page
+    .evaluate(() => {
+      const active =
+        document.querySelector(
+          ".pagination .active, .pagination .page-item.active, [aria-current='page']"
+        ) || document.querySelector(".pagination li.active");
+      const text = (active?.textContent || "").trim();
+      const href = window.location.href;
+      return `${text || "no-active-page"}|${href}`;
+    })
+    .catch(() => `fallback|${Date.now()}`);
+}
+
+async function inspectPagination(page) {
+  return page
+    .evaluate(() => {
+      const container = document.querySelector("ul.pagination, .pagination");
+      if (!container) return { found: false, hasEnabledNext: false, current: "", nextText: "" };
+      const items = Array.from(container.querySelectorAll("li"));
+      if (!items.length) return { found: true, hasEnabledNext: false, current: "", nextText: "" };
+
+      const activeIndex = items.findIndex(
+        (li) =>
+          li.classList.contains("active") ||
+          li.classList.contains("selected") ||
+          li.querySelector("[aria-current='page']")
+      );
+      const current = ((activeIndex >= 0 ? items[activeIndex]?.textContent : "") || "").trim();
+
+      let hasEnabledNext = false;
+      let nextText = "";
+      for (let i = activeIndex + 1; i < items.length; i += 1) {
+        const li = items[i];
+        if (!li) continue;
+        const cls = li.className || "";
+        if (/disabled|inactive/i.test(cls) || li.getAttribute("aria-disabled") === "true") continue;
+        const trigger = li.querySelector("a,button,span");
+        if (!trigger) continue;
+        hasEnabledNext = true;
+        nextText = (trigger.textContent || "").trim();
+        break;
+      }
+
+      return { found: true, hasEnabledNext, current, nextText };
+    })
+    .catch(() => ({ found: false, hasEnabledNext: false, current: "", nextText: "" }));
+}
+
+async function clickNextPageFromDom(page) {
+  return page
+    .evaluate(() => {
+      const container = document.querySelector("ul.pagination, .pagination");
+      if (!container) return { clicked: false, reason: "no-container" };
+      const items = Array.from(container.querySelectorAll("li"));
+      if (!items.length) return { clicked: false, reason: "no-items" };
+      const activeIndex = items.findIndex(
+        (li) =>
+          li.classList.contains("active") ||
+          li.classList.contains("selected") ||
+          li.querySelector("[aria-current='page']")
+      );
+      for (let i = activeIndex + 1; i < items.length; i += 1) {
+        const li = items[i];
+        if (!li) continue;
+        const cls = li.className || "";
+        if (/disabled|inactive/i.test(cls) || li.getAttribute("aria-disabled") === "true") continue;
+        const trigger = li.querySelector("a,button,span");
+        if (!trigger) continue;
+        trigger.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+        return { clicked: true, reason: "clicked-dom-next", text: (trigger.textContent || "").trim() };
+      }
+      return { clicked: false, reason: "no-enabled-after-active" };
+    })
+    .catch(() => ({ clicked: false, reason: "evaluate-error" }));
+}
+
+function getNextPageCandidates(page) {
+  return [
+    page.locator("a[rel='next'], button[rel='next']").first(),
+    page.locator(".pagination .next:not(.disabled) a, .pagination .next:not(.disabled) button").first(),
+    page.locator(".pagination .page-item.next:not(.disabled) a, .pagination .page-item.next:not(.disabled) button").first(),
+    page.locator(".pagination a[aria-label*='próx' i], .pagination button[aria-label*='próx' i]").first(),
+    page.locator(".pagination a[aria-label*='proxim' i], .pagination button[aria-label*='proxim' i]").first(),
+    page.locator(".pagination a[aria-label*='next' i], .pagination button[aria-label*='next' i]").first(),
+    page.getByRole("button", { name: /próxima|proxima|seguinte|next|avançar|avancar|>/i }),
+    page.getByRole("link", { name: /próxima|proxima|seguinte|next|avançar|avancar|>/i }),
+    page.locator("a[title*='próx' i], button[title*='próx' i]").first(),
+    page.locator("a[title*='proxim' i], button[title*='proxim' i]").first(),
+    page.locator("a[title*='next' i], button[title*='next' i]").first(),
+    page.locator("a[aria-label*='next' i], button[aria-label*='next' i]").first()
   ];
+}
+
+async function hasNextPage(page) {
+  const pagination = await inspectPagination(page);
+  if (pagination.found) return pagination.hasEnabledNext;
+
+  const nextCandidates = getNextPageCandidates(page);
 
   for (const candidate of nextCandidates) {
     if ((await candidate.count()) === 0) continue;
     const first = candidate.first();
     const disabled = await first.getAttribute("disabled");
+    const ariaDisabled = await first.getAttribute("aria-disabled");
     const classes = (await first.getAttribute("class")) || "";
-    if (!disabled && !/disabled|inactive/i.test(classes)) return true;
+    if (!disabled && ariaDisabled !== "true" && !/disabled|inactive/i.test(classes)) return true;
   }
 
   return false;
 }
 
 async function goToNextPage(page) {
-  const nextCandidates = [
-    page.getByRole("button", { name: /próxima|proxima|next|>/i }),
-    page.getByRole("link", { name: /próxima|proxima|next|>/i }),
-    page.locator("a[aria-label*='next' i], button[aria-label*='next' i]")
-  ];
+  const nextCandidates = getNextPageCandidates(page);
+  const markerBefore = await getCurrentPageMarker(page);
+
+  const domClickResult = await clickNextPageFromDom(page);
+  if (domClickResult.clicked) {
+    await page.waitForFunction(
+      (prev) => {
+        const active =
+          document.querySelector(
+            ".pagination .active, .pagination .page-item.active, [aria-current='page']"
+          ) || document.querySelector(".pagination li.active");
+        const text = (active?.textContent || "").trim();
+        const marker = `${text || "no-active-page"}|${window.location.href}`;
+        return marker !== prev;
+      },
+      markerBefore,
+      { timeout: 5000 }
+    ).catch(async () => {
+      await page.waitForTimeout(1400);
+    });
+    const markerAfter = await getCurrentPageMarker(page);
+    return markerBefore !== markerAfter;
+  }
 
   for (const candidate of nextCandidates) {
+    const count = await candidate.count().catch(() => 0);
+    if (count === 0) continue;
+
     if (await clickIfVisible(candidate, 1500)) {
-      await page.waitForTimeout(1400);
+      await page.waitForFunction(
+        (prev) => {
+          const active =
+            document.querySelector(
+              ".pagination .active, .pagination .page-item.active, [aria-current='page']"
+            ) || document.querySelector(".pagination li.active");
+          const text = (active?.textContent || "").trim();
+          const marker = `${text || "no-active-page"}|${window.location.href}`;
+          return marker !== prev;
+        },
+        markerBefore,
+        { timeout: 5000 }
+      ).catch(async () => {
+        await page.waitForTimeout(1400);
+      });
+      const markerAfter = await getCurrentPageMarker(page);
       return true;
     }
   }
